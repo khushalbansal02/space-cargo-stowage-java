@@ -137,6 +137,20 @@ mvn spring-boot:run              # API on :8000
 
 Datasource settings are overridable via `DB_URL`, `DB_USER`, `DB_PASSWORD`.
 
+### Browse the database (pgAdmin)
+
+```bash
+docker compose --profile tools up -d pgadmin
+```
+
+Open **http://localhost:5050** — no login. The **Cargo (local)** server is
+pre-registered and auto-connects; expand *Servers → Cargo (local) → Databases →
+cargo → Schemas → public → Tables* to browse `containers`, `items`, `action_logs`,
+and `simulation_state`. Right-click a table → *View/Edit Data* to see live rows.
+
+> Prefer a native app? Point **DBeaver** or **TablePlus** at
+> `localhost:5432`, database `cargo`, user `cargo`, password `cargo`.
+
 ### Try it
 
 ```bash

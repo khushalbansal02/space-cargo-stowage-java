@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Cargo (local)",
+      "Group": "Servers",
+      "Host": "db",
+      "Port": 5432,
+      "MaintenanceDB": "cargo",
+      "Username": "cargo",
+      "PassFile": "/tmp/pgpass",
+      "SSLMode": "prefer"
+    }
+  }
+}
