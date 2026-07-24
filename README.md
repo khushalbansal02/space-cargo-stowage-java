@@ -189,6 +189,24 @@ CI runs the whole suite on every push and pull request
 
 ---
 
+## Performance
+
+Benchmarked against the official dataset — **2000 items across 56 containers** —
+running the full placement engine end-to-end (HTTP → engine → PostgreSQL):
+
+| Metric | Result |
+|---|---|
+| Items placed | **2000 / 2000** (0 failures) |
+| Wall-clock time | **~10.4 s** (10.2–10.9 s over repeated runs) |
+| Throughput | **~190 items/sec** (~5.3 ms/item) |
+| Placed in preferred zone/container | **1555 / 2000 (78%)** |
+| Overall volume utilisation | **45.5%** |
+| Avg. removals to retrieve any item | **0.69** |
+
+Every item was packed with valid, non-overlapping coordinates in one transaction.
+*(Measured on a local machine with a warm JVM against Dockerised PostgreSQL 16;
+numbers are indicative, not a formal benchmark.)*
+
 ## Notes on the design
 
 - **Schema is owned by Flyway**, not Hibernate (`ddl-auto: validate`) — migrations are
