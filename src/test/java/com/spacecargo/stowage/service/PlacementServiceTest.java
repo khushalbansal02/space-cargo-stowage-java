@@ -97,6 +97,54 @@ class PlacementServiceTest {
     }
 
     @Test
+    void exactContainerPreferenceBeatsAMoreAccessibleSameZoneSibling() {
+        // Both containers are in zone "Lab". CNT-A is empty (most accessible spot at
+        // the origin); CNT-B already has an item at the origin, so a new item there
+        // scores worse geometrically. The item nonetheless prefers CNT-B specifically,
+        // which must win over its more-accessible zone sibling CNT-A.
+        containers.save(new Container("CNT-A", "Lab", 10, 10, 10));
+        containers.save(new Container("CNT-B", "Lab", 10, 10, 10));
+
+        Item resident = availableItem("resident", 50, "Lab");
+        resident.setContainerId("CNT-B");
+        resident.stow("CNT-B", new com.spacecargo.stowage.domain.geometry.BoundingBox(0, 0, 0, 2, 2, 2));
+        items.save(resident);
+
+        Item item = availableItem("target", 90, "Lab");
+        item.setPreferredContainerId("CNT-B");
+        items.save(item);
+
+        List<PlacementOutcome> outcomes = placementService.placeItems(List.of("target"), "tester");
+
+        assertThat(outcomes).singleElement().satisfies(o -> {
+            assertThat(o.containerId()).isEqualTo("CNT-B");
+            assertThat(o.preferred()).isTrue();
+        });
+    }
+
+    @Test
+    void zoneSiblingIsUsedWhenTheExactPreferredContainerIsFull() {
+        // Item prefers the exact container FULL (which cannot fit it) but also names a
+        // zone; it should spill to the same-zone sibling rather than a far container.
+        containers.save(new Container("FULL", "Lab", 2, 2, 2));
+        containers.save(new Container("SIBLING", "Lab", 10, 10, 10));
+        containers.save(new Container("FARAWAY", "Storage", 10, 10, 10));
+
+        Item blocker = availableItem("blocker", 50, "Lab");
+        blocker.stow("FULL", new com.spacecargo.stowage.domain.geometry.BoundingBox(0, 0, 0, 2, 2, 2));
+        items.save(blocker);
+
+        Item item = availableItem("target", 90, "Lab");
+        item.setPreferredContainerId("FULL");
+        items.save(item);
+
+        List<PlacementOutcome> outcomes = placementService.placeItems(List.of("target"), "tester");
+
+        assertThat(outcomes).singleElement()
+                .satisfies(o -> assertThat(o.containerId()).isEqualTo("SIBLING"));
+    }
+
+    @Test
     void defaultsToPlacingAllAvailableItemsWhenNoIdsGiven() {
         containers.save(new Container("C1", "Crew", 10, 10, 10));
         items.save(availableItem("I1", 30, null));

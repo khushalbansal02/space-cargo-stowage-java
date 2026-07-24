@@ -32,8 +32,13 @@ import java.util.Optional;
 @Service
 public class PlacementService {
 
-    /** Pushes non-preferred containers behind every preferred option without excluding them. */
-    private static final double NON_PREFERRED_PENALTY = 1_000_000_000.0;
+    // Graduated preference penalties. Each tier is separated by far more than the
+    // largest possible accessibility score, so preference dominates and the tiers
+    // never blur: exact container > same-zone sibling > any other container.
+    /** A container in the preferred zone, but not the specifically preferred container. */
+    private static final double PENALTY_ZONE_SIBLING = 1_000_000_000.0;      // 1e9
+    /** A container matching neither the preferred container nor zone. */
+    private static final double PENALTY_NON_PREFERRED = 1_000_000_000_000.0; // 1e12
 
     private final ContainerRepository containers;
     private final ItemRepository items;
@@ -78,8 +83,9 @@ public class PlacementService {
                 continue;
             }
             BoundingBox box = spot.get();
-            boolean preferred = satisfiesPreference(item, space);
-            double score = AccessibilityScorer.score(box) + (preferred ? 0.0 : NON_PREFERRED_PENALTY);
+            double penalty = preferencePenalty(item, space, spaces);
+            boolean preferred = penalty == 0.0;
+            double score = AccessibilityScorer.score(box) + penalty;
             if (score < bestScore) {
                 bestScore = score;
                 bestSpace = space;
@@ -109,17 +115,46 @@ public class PlacementService {
         return PlacementOutcome.placed(item.getItemId(), bestSpace.getContainerId(), bestBox, bestPreferred);
     }
 
-    /** No preference means anything is acceptable; otherwise match container id or zone. */
-    private boolean satisfiesPreference(Item item, ContainerSpace space) {
-        boolean hasContainerPref = item.getPreferredContainerId() != null;
-        boolean hasZonePref = item.getPreferredZone() != null;
-        if (!hasContainerPref && !hasZonePref) {
-            return true;
+    /**
+     * Score penalty for placing {@code item} in {@code space}, ranking containers by
+     * how well they satisfy the item's preference:
+     * <ul>
+     *   <li>no preference, or the exact preferred container → {@code 0} (best);</li>
+     *   <li>a different container in the preferred zone → {@link #PENALTY_ZONE_SIBLING};</li>
+     *   <li>anything else → {@link #PENALTY_NON_PREFERRED}.</li>
+     * </ul>
+     * When only a zone is preferred, a zone match is the top tier ({@code 0}).
+     */
+    private double preferencePenalty(Item item, ContainerSpace space, Map<String, ContainerSpace> spaces) {
+        String prefContainer = blankToNull(item.getPreferredContainerId());
+        String prefZone = blankToNull(item.getPreferredZone());
+
+        if (prefContainer == null && prefZone == null) {
+            return 0.0; // no preference — any container is equally acceptable
         }
-        if (hasContainerPref && space.getContainerId().equals(item.getPreferredContainerId())) {
-            return true;
+
+        if (prefContainer != null) {
+            if (space.getContainerId().equals(prefContainer)) {
+                return 0.0; // exact preferred container always wins
+            }
+            String zone = prefZone != null ? prefZone : zoneOf(prefContainer, spaces);
+            if (zone != null && space.getZone().equals(zone)) {
+                return PENALTY_ZONE_SIBLING; // right zone, but not the requested container
+            }
+            return PENALTY_NON_PREFERRED;
         }
-        return hasZonePref && space.getZone().equals(item.getPreferredZone());
+
+        // Only a zone was requested: matching it is the top tier.
+        return space.getZone().equals(prefZone) ? 0.0 : PENALTY_NON_PREFERRED;
+    }
+
+    private String zoneOf(String containerId, Map<String, ContainerSpace> spaces) {
+        ContainerSpace space = spaces.get(containerId);
+        return space == null ? null : space.getZone();
+    }
+
+    private String blankToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value;
     }
 
     private Map<String, ContainerSpace> buildContainerSpaces() {
