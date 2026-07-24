@@ -24,6 +24,23 @@ spring:
 server:
   port: 8000                    # matches the original PHP backend / Docker EXPOSE
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: Space Cargo Stowage
+    version: 1.0.0
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
