@@ -41,8 +41,13 @@ questions automatically:
 | **Simulation** | `POST /api/v1/simulate/day`, `GET /api/v1/simulate/current-date` | advance the clock, age & consume items |
 | **Import/Export** | `POST /api/v1/import/{containers,items}`, `GET /api/v1/export/arrangement` | CSV in/out |
 | **Audit log** | `GET /api/v1/logs` | every mutation recorded, filterable & paginated |
+| **Analytics** | `GET /api/v1/metrics` | container utilisation %, avg retrieval steps, waste, status counts |
+| **Ops** | `GET /actuator/{health,info,metrics,prometheus}` | health checks and Micrometer metrics |
 
 Interactive API docs (Swagger UI) at **`/swagger-ui.html`** once running.
+
+Every request carries an `X-Correlation-Id` (generated if not supplied) that is
+echoed on the response and stamped on every log line for that request.
 
 ---
 
@@ -157,11 +162,13 @@ curl http://localhost:8000/api/v1/export/arrangement
 mvn test
 ```
 
-The suite runs against an in-memory **H2 (PostgreSQL mode)** database, so it needs no
-external services. It covers the geometry primitives, the packing heuristic (including
-a property test that 50 packed cubes never overlap), the retrieval planner, every
-service against a real transactional context, and the REST layer end-to-end via
-MockMvc.
+The bulk of the suite runs against an in-memory **H2 (PostgreSQL mode)** database, so
+it needs no external services. It covers the geometry primitives, the packing
+heuristic (including a property test that 50 packed cubes never overlap), the
+retrieval planner, every service against a real transactional context, and the REST
+layer end-to-end via MockMvc. A separate **Testcontainers** test boots the app
+against a real `postgres:16-alpine` (real Flyway migrations, real driver); it runs in
+CI and is skipped automatically where Docker is unavailable.
 
 CI runs the whole suite on every push and pull request
 ([workflow](.github/workflows/ci.yml)).
