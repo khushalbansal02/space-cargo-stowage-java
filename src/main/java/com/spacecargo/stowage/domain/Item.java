@@ -8,6 +8,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -74,7 +76,19 @@ public class Item {
     @Embedded
     private Placement placement;
 
-    protected Item() {
+    public Item() {
+    }
+
+    @PrePersist
+    void onCreate() {
+        if (lastUpdated == null) {
+            lastUpdated = Instant.now();
+        }
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        lastUpdated = Instant.now();
     }
 
     // --- Domain behaviour ------------------------------------------------
