@@ -48,3 +48,6 @@ springdoc:
 logging:
   level:
     com.spacecargo.stowage: DEBUG
+  pattern:
+    # Prefix the log level with the request's correlation id (empty for non-request threads)
+    level: "%5p [%X{correlationId:-}]"
