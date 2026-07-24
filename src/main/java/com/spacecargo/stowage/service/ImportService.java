@@ -52,11 +52,11 @@ public class ImportService {
             row++;
             try {
                 Container c = new Container(
-                        required(record, "containerId"),
+                        required(record, "containerId", "container_id"),
                         required(record, "zone"),
-                        parseDouble(record, "width"),
-                        parseDouble(record, "depth"),
-                        parseDouble(record, "height"));
+                        parseDouble(record, "width", "width_cm"),
+                        parseDouble(record, "depth", "depth_cm"),
+                        parseDouble(record, "height", "height_cm"));
                 containers.save(c);
                 imported++;
             } catch (RuntimeException e) {
@@ -92,20 +92,20 @@ public class ImportService {
     }
 
     private Item toItem(Map<String, String> record) {
-        Integer usageLimit = parseOptionalInt(record, "usageLimit");
+        Integer usageLimit = parseOptionalInt(record, "usageLimit", "usage_limit");
         Item item = new Item();
-        item.setItemId(required(record, "itemId"));
+        item.setItemId(required(record, "itemId", "item_id"));
         item.setName(required(record, "name"));
-        item.setDimensionW(parseDouble(record, "width"));
-        item.setDimensionD(parseDouble(record, "depth"));
-        item.setDimensionH(parseDouble(record, "height"));
-        item.setMass(parseOptionalDouble(record, "mass"));
+        item.setDimensionW(parseDouble(record, "width", "width_cm"));
+        item.setDimensionD(parseDouble(record, "depth", "depth_cm"));
+        item.setDimensionH(parseDouble(record, "height", "height_cm"));
+        item.setMass(parseOptionalDouble(record, "mass", "mass_kg"));
         item.setPriority((int) parseDouble(record, "priority"));
-        item.setExpiryDate(parseOptionalDate(record, "expiryDate"));
+        item.setExpiryDate(parseOptionalDate(record, "expiryDate", "expiry_date"));
         item.setUsageLimit(usageLimit);
         item.setRemainingUses(usageLimit);
-        item.setPreferredZone(blankToNull(record.get("preferredZone")));
-        item.setPreferredContainerId(blankToNull(record.get("preferredContainerId")));
+        item.setPreferredZone(value(record, "preferredZone", "preferred_zone"));
+        item.setPreferredContainerId(value(record, "preferredContainerId", "preferred_container_id"));
         item.setStatus(ItemStatus.AVAILABLE);
         return item;
     }
@@ -125,38 +125,48 @@ public class ImportService {
         return rows;
     }
 
-    private String required(Map<String, String> record, String key) {
-        String value = record.get(key);
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Missing required column '" + key + "'.");
+    /** First non-blank value among the given column aliases, or null. Treats "N/A" as blank. */
+    private String value(Map<String, String> record, String... keys) {
+        for (String key : keys) {
+            String raw = record.get(key);
+            if (raw != null) {
+                String trimmed = raw.trim();
+                if (!trimmed.isEmpty() && !trimmed.equalsIgnoreCase("N/A") && !trimmed.equalsIgnoreCase("NA")) {
+                    return trimmed;
+                }
+            }
         }
-        return value.trim();
+        return null;
     }
 
-    private double parseDouble(Map<String, String> record, String key) {
+    private String required(Map<String, String> record, String... keys) {
+        String v = value(record, keys);
+        if (v == null) {
+            throw new IllegalArgumentException("Missing required column '" + keys[0] + "'.");
+        }
+        return v;
+    }
+
+    private double parseDouble(Map<String, String> record, String... keys) {
         try {
-            return Double.parseDouble(required(record, key));
+            return Double.parseDouble(required(record, keys));
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Column '" + key + "' must be a number.");
+            throw new IllegalArgumentException("Column '" + keys[0] + "' must be a number.");
         }
     }
 
-    private Double parseOptionalDouble(Map<String, String> record, String key) {
-        String value = blankToNull(record.get(key));
-        return value == null ? null : Double.parseDouble(value);
+    private Double parseOptionalDouble(Map<String, String> record, String... keys) {
+        String v = value(record, keys);
+        return v == null ? null : Double.parseDouble(v);
     }
 
-    private Integer parseOptionalInt(Map<String, String> record, String key) {
-        String value = blankToNull(record.get(key));
-        return value == null ? null : Integer.parseInt(value);
+    private Integer parseOptionalInt(Map<String, String> record, String... keys) {
+        String v = value(record, keys);
+        return v == null ? null : Integer.parseInt(v);
     }
 
-    private LocalDate parseOptionalDate(Map<String, String> record, String key) {
-        String value = blankToNull(record.get(key));
-        return value == null ? null : LocalDate.parse(value);
-    }
-
-    private String blankToNull(String value) {
-        return (value == null || value.isBlank()) ? null : value.trim();
+    private LocalDate parseOptionalDate(Map<String, String> record, String... keys) {
+        String v = value(record, keys);
+        return v == null ? null : LocalDate.parse(v);
     }
 }

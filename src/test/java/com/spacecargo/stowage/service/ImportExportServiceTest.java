@@ -62,6 +62,38 @@ class ImportExportServiceTest {
     }
 
     @Test
+    void importsTheOfficialHackathonColumnFormat() {
+        // Containers: zone-first order with _cm suffixes.
+        String containerCsv = """
+                zone,container_id,width_cm,depth_cm,height_cm
+                Crew_Quarters,CQ01,100,85,200
+                """;
+        ImportResult cResult = importService.importContainers(new StringReader(containerCsv));
+        assertThat(cResult.imported()).isEqualTo(1);
+        assertThat(containers.findById("CQ01")).isPresent();
+
+        // Items: item_id/width_cm/mass_kg/expiry_date=N/A/usage_limit/preferred_zone.
+        String itemCsv = """
+                item_id,name,width_cm,depth_cm,height_cm,mass_kg,priority,expiry_date,usage_limit,preferred_zone
+                000001,Research_Samples,26.8,17.5,19.4,2.4,84,N/A,2304,Storage_Bay
+                000010,Food_Packet,15.7,18.6,29.4,9.3,41,2025-10-23,11,Storage_Bay
+                """;
+        ImportResult iResult = importService.importItems(new StringReader(itemCsv));
+
+        assertThat(iResult.imported()).isEqualTo(2);
+        assertThat(iResult.errors()).isEmpty();
+
+        Item withoutExpiry = items.findById("000001").orElseThrow();
+        assertThat(withoutExpiry.getExpiryDate()).isNull();          // "N/A" → null
+        assertThat(withoutExpiry.getDimensionW()).isEqualTo(26.8);   // width_cm
+        assertThat(withoutExpiry.getMass()).isEqualTo(2.4);          // mass_kg
+        assertThat(withoutExpiry.getPreferredZone()).isEqualTo("Storage_Bay");
+
+        Item withExpiry = items.findById("000010").orElseThrow();
+        assertThat(withExpiry.getExpiryDate()).isEqualTo(java.time.LocalDate.of(2025, 10, 23));
+    }
+
+    @Test
     void exportsStowedItemsAsCsv() {
         containers.save(new com.spacecargo.stowage.domain.Container("C1", "Lab", 10, 10, 10));
         Item item = new Item();
