@@ -1,0 +1,5 @@
+containerId,zone,width,depth,height
+CNT-A,Crew Quarters,100,100,100
+CNT-B,Crew Quarters,80,120,90
+CNT-C,Laboratory,120,120,120
+CNT-D,Airlock,60,60,60

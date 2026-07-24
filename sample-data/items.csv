@@ -1,0 +1,11 @@
+itemId,name,width,depth,height,mass,priority,expiryDate,usageLimit,preferredZone,preferredContainerId
+ITM-001,Oxygen Cylinder,30,30,60,12.5,95,,,Crew Quarters,
+ITM-002,Water Pouch Pack,40,40,20,8.0,70,2026-12-31,,Crew Quarters,
+ITM-003,First Aid Kit,25,25,15,2.0,90,2027-06-30,5,Crew Quarters,CNT-A
+ITM-004,Science Sample Box,50,50,50,6.0,60,,,Laboratory,
+ITM-005,Food Ration,20,20,20,1.5,55,2026-09-15,10,Crew Quarters,
+ITM-006,Spare Filter,15,15,10,0.8,40,,,Laboratory,
+ITM-007,Battery Module,35,35,25,5.5,80,,20,Laboratory,CNT-C
+ITM-008,Tool Kit,45,30,25,4.2,65,,,Laboratory,
+ITM-009,Experiment Reagent,10,10,20,0.5,50,2026-08-20,3,Laboratory,
+ITM-010,Waste Bag,30,30,40,0.3,20,,,Airlock,CNT-D
