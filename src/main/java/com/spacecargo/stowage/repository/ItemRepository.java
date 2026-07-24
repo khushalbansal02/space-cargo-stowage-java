@@ -11,6 +11,8 @@ public interface ItemRepository extends JpaRepository<Item, String> {
 
     List<Item> findByStatus(ItemStatus status);
 
+    long countByStatus(ItemStatus status);
+
     List<Item> findByContainerId(String containerId);
 
     /** All items currently stowed in a container (used for obstruction/packing checks). */
